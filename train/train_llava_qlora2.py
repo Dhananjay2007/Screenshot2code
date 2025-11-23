@@ -357,22 +357,24 @@ def main():
             if (step + 1) % args.grad_accum == 0:
                 optim.step()
                 sched.step()
-                optim.zero_grad(set_to_none=True)
+                optim.zero_grad()
                 global_step += 1
 
-                if accelerator.is_main_process and global_step % args.eval_steps == 0 and args.eval_steps != 0:
-                    val_loss = evaluate(model, val_loader, accelerator.device)
-                    logger.info(f"[eval] step {global_step} val_loss={val_loss:.3f}")
-
                 if accelerator.is_main_process and global_step % args.save_steps == 0:
-                    ck = Path(args.output_dir) / f"step_{global_step}.pt"
-                    save_checkpoint(accelerator, model, optim, sched, global_step, ck, logger)
-                    logger.info(f"[checkpoint] saved {ck}")
+                    ckpt_path = Path(args.output_dir) / f"step_{global_step}.pt"
+                    save_checkpoint(accelerator, model, optim, sched, global_step, ckpt_path, logger)
+
+                    # copy to upload folder
+                    os.system(f"cp {ckpt_path} /kaggle/working/checkpoints_for_upload/")
+
+                    # upload new version
+                    kaggle_upload("/kaggle/working/checkpoints_for_upload", f"step_{global_step}", logger)
 
     if accelerator.is_main_process:
-        final_path = Path(args.output_dir) / "final_adapter.pt"
+        final_path = Path(args.output_dir) / "final.pt"
         accelerator.save({"model": accelerator.get_state_dict(model)}, final_path)
-        logger.info(f"Done. Saved LoRA adapter: {final_path}")
+        os.system(f"cp {final_path} /kaggle/working/checkpoints_for_upload/")
+        kaggle_upload("/kaggle/working/checkpoints_for_upload", "final adapter", logger)
 
 
 if __name__ == "__main__":
