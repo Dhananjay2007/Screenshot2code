@@ -1,4 +1,5 @@
 {
+    "outputDirectory": "frontend/.next",
     "experimentalServices": {
         "frontend": {
             "routePrefix": "/",
