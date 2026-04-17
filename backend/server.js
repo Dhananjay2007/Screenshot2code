@@ -8,13 +8,24 @@ import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+const uploadDir = "/tmp/uploads";
+await fs.mkdir(uploadDir, { recursive: true });
+
+function createAiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    const error = new Error("GEMINI_API_KEY is not configured on the backend deployment.");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return new GoogleGenAI({ apiKey });
+}
 
 const app = express();
 app.use(cors());
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: uploadDir });
 
 // POST /api/generate
 app.post("/api/generate", upload.single("image"), async (req, res) => {
@@ -26,6 +37,7 @@ app.post("/api/generate", upload.single("image"), async (req, res) => {
     console.log("Processing upload:", req.file.path);
     const buffer = await fs.readFile(req.file.path);
     const base64 = buffer.toString("base64");
+    const ai = createAiClient();
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
