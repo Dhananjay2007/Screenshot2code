@@ -6,6 +6,8 @@ import { CodeOutput } from "@/components/code-output"
 import { useState } from "react"
 
 export default function UploadPage() {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "/_/backend"
+
   const [generatedCode, setGeneratedCode] = useState<{
     html?: string
     css?: string
@@ -24,13 +26,10 @@ export default function UploadPage() {
       formData.append("image", file) // ✔ BACKEND EXPECTS "image", not "file"
 
       // Send request to backend
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/generate`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      )
+      const res = await fetch(`${apiBase}/api/generate`, {
+        method: "POST",
+        body: formData,
+      })
 
       if (!res.ok) {
         throw new Error(`Backend error: ${await res.text()}`)
